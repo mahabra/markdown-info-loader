@@ -1,6 +1,8 @@
 Markdown info loader
 ==
 
+**Beta. Use on your own risk**
+
 Build a static blog? You can get all requred information about markdown file (includes author and last update time) with this loader.
 
 Options
