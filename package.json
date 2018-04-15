@@ -1,0 +1,53 @@
+{
+  "name": "markdown-info-loader",
+  "version": "0.1.0",
+  "description": "Load meta information (includes YAML) about md file, and optionaly load markdown content",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel src -d lib",
+    "prepublish": "npm run lint && npm run build",
+    "lint": "eslint ./src"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/morulus/markdown-info-loader.git"
+  },
+  "keywords": [
+    "markdown",
+    "meta",
+    "bundle",
+    "loader",
+    "git",
+    "info",
+    "webpack"
+  ],
+  "author": "Vladimir Morulus <vladimirmorulus@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/morulus/markdown-info-loader/issues"
+  },
+  "homepage": "https://github.com/morulus/markdown-info-loader#readme",
+  "devDependencies": {
+    "babel-cli": "6.23.0",
+    "babel-loader": "^7.1.2",
+    "babel-plugin-transform-es2015-spread": "^6.22.0",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-react": "^6.24.1",
+    "eslint": "^4.19.1",
+    "eslint-config-google": "^0.9.1",
+    "gh-pages": "^1.1.0",
+    "webpack": "^3.10.0"
+  },
+  "dependencies": {
+    "cross-spawn": "^6.0.5",
+    "loader-utils": "^1.1.0",
+    "lodash.omit": "^4.5.0",
+    "query-string": "^6.0.0",
+    "remark-parse": "^5.0.0",
+    "unified": "^6.1.6",
+    "webpack-stringify-loaders": "^1.1.1",
+    "yaml-front-matter": "^4.0.0"
+  }
+}
