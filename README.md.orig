@@ -1,9 +1,13 @@
 Markdown info loader
 ==
 
-**Beta. Use on your own risk!**
-
+<<<<<<< HEAD
 Develop a static blog? You can get all required information about markdown file (includes title, YAML metadata, author, editor or last update time) without loading whole markdown contents (or with it, or as a separated bundle)
+=======
+**Beta. Use on your own risk**
+
+Build a static blog? You can get all requred information about markdown file (includes author and last update time) with this loader.
+>>>>>>> 0825de8442527acadaa70a43960b180f5f84224f
 
 Options
 --
@@ -67,7 +71,7 @@ Thus you can at the same time load both file's metadata and its content.
   test   : /\.md$/,
   exclude: /node_modules/,
   use    : {
-    loader : `markdown-info-loader`,
+    loader : `markdown-meta-loader`,
     options: {
       git: {
         last: false,
