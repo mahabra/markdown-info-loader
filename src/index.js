@@ -10,6 +10,9 @@ var yaml = require(`yaml-front-matter`);
 var loaderUtils = require(`loader-utils`);
 var queryString = require(`query-string`);
 var omit = require(`lodash.omit`);
+var isObjectLike = require(`lodash.isobjectlike`);
+var zipObject = require(`lodash.zipobject`);
+var defaultsDeep = require(`lodash.defaultsdeep`);
 
 /* Supports only loaders with serializable options */
 function querifyLoaders(loaders) {
@@ -29,31 +32,58 @@ function querifyLoaders(loaders) {
 }
 
 /* Parse string for integer without isNaN result. Returns 0 on parse error */
-function saveParseInt(date) {
-  var result = parseInt(date, 10);
-  return Number.isNaN(result) ? 0 : result;
-}
+/* Function saveParseInt(date) {
+   var result = parseInt(date, 10);
+   return Number.isNaN(result) ? 0 : result;
+   } */
 
-/* Fetch git props*/
+var DEFAULT_GIT_FORMAT_SEPARATOR = `-unrepraduciible-mil-GEV-3155-`;
 
 /* Perry format to get author name, author email, and create date */
-var GIT_LOG_PRETTY_MASK = `%an:%ae:%at`;
+var DEFAULT_COMMIT_PROPERTIES = [`an`, `ae`, `at`];
 
-/* Parse git commit log, which has created with format mask */
-function parseGitMeta(meta) {
-  var metaData = meta.split(`:`);
+var DEFAULT_FETCH_GIT_CONFIGURATION = {
+  /* Array of placeholders, which should be parsed from git log */
+  placeholders: DEFAULT_COMMIT_PROPERTIES,
 
-  if (metaData.length !== 3) {
-    return {};
-  }
+  /* Get initial commit */
+  initial: true,
 
-  return {
-    author: {
-      name: metaData[0],
-      email: metaData[1]
-    },
-    date: saveParseInt(metaData[2], 10) * 1000
+  /* Get last commit */
+  last: true,
+
+  /* Get all commits */
+  all: false,
+
+  /* Seprator for pretty format */
+  formatSep: DEFAULT_GIT_FORMAT_SEPARATOR
+};
+
+function getCommitOutputParser(placeholders, sep) {
+  return function parseFormat(output) {
+    const values = output.split(sep);
+    return zipObject(placeholders, values);
   };
+}
+
+function addPercentSymbol(str) {
+  return `%${str}`;
+}
+
+/* Converts array to pretty format query */
+function buildPrettyFormat(placeholders, sep) {
+  return placeholders.map(addPercentSymbol).join(sep);
+}
+
+function spawnGitLog(resourcePath, prettyFormat, middleOptions = []) {
+  const options = [`log`]
+    .concat(middleOptions)
+    .concat([`--pretty=format:${prettyFormat}`, `--`, resourcePath]);
+  const child = spawn.sync(`git`, options, {
+    cwd: path.dirname(resourcePath)
+  });
+
+  return child.stdout.toString(`utf-8`);
 }
 
 module.exports = function loader(source) {
@@ -64,9 +94,23 @@ module.exports = function loader(source) {
   var options = Object.assign({
     /* Use git CLI to collect advanced information about file, such as author
      * name, email, and create date.
-     * */
+     *
+     * @value (bool|object)
+     *
+     * Can be a bool, or a object.
+     *
+     * If object, it may have options:
+     * - `placeholders` (array) Array of placeholders, supported by `git log --pretty=format`
+     * - `initial` (bool) Get properties of initial commit
+     * - `last` (bool) Get properties of last commit
+     * - `all` (bool) Get all commits properties (heavy)
+     * - `formatSep` (string) Separator of placeholders
+     *
+     * Custom configuration will be deep mixed with default configuration, thus shape like { all: false } will be correct.
+     *
+     * But in most cases you'd like to change only `placeholders` option
+    */
     git: true,
-    /* TODO: In future plans to make possible to specify what exactly information git take on */
 
     /* Walk ast to find file heading */
     heading: true,
@@ -106,12 +150,68 @@ module.exports = function loader(source) {
 
   /* Use git CLI to get file advanced info */
   if (options.git) {
-    /* Initial commit allows us to get info file author */
-    var result = spawn.sync(`git`, [`log`, `--diff-filter=A`, `-n 1`, `--pretty=format:${GIT_LOG_PRETTY_MASK}`, `--`, this.resourcePath], {
-      cwd: path.dirname(this.resourcePath)
-    });
+    const configuration = isObjectLike(options.git)
+      ? defaultsDeep(options.git, DEFAULT_FETCH_GIT_CONFIGURATION)
+      : DEFAULT_FETCH_GIT_CONFIGURATION;
 
-    Object.assign(meta, parseGitMeta(result.stdout.toString(`utf-8`)));
+    /* Fast configuration validate */
+    const validStructure = isObjectLike(configuration) &&
+      Array.isArray(configuration.placeholders);
+
+    if (!validStructure) {
+      throw new TypeError(`Invalid git configuration`);
+    }
+
+    const prettyFormat = buildPrettyFormat(
+      configuration.placeholders,
+      configuration.formatSep
+    );
+
+    const commits = {};
+
+    if (configuration.all) {
+      const rawOutput = spawnGitLog(
+        this.resourcePath,
+        prettyFormat
+      );
+
+      commits.all = rawOutput
+        .split(`\n`)
+        .map(getCommitOutputParser(
+          configuration.placeholders,
+          configuration.formatSep
+        ));
+    }
+
+    if (configuration.initial) {
+      const rawOutput = spawnGitLog(
+        this.resourcePath,
+        prettyFormat,
+        [`--diff-filter=A`, `-n 1`]
+      );
+
+      commits.initial = getCommitOutputParser(
+        configuration.placeholders,
+        configuration.formatSep
+      )(rawOutput);
+    }
+
+    if (configuration.last) {
+      const rawOutput = spawnGitLog(
+        this.resourcePath,
+        prettyFormat,
+        [`-n 1`]
+      );
+
+      commits.last = getCommitOutputParser(
+        configuration.placeholders,
+        configuration.formatSep
+      )(rawOutput);
+    }
+
+    Object.assign(meta, {
+      commits
+    });
   }
 
   /* Walk ast for heading */
