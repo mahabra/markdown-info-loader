@@ -1,6 +1,8 @@
 Markdown info loader
 ==
 
+**Beta. Use on your own risk!**
+
 Develop a static blog? You can get all required information about markdown file (includes title, YAML metadata, author, editor or last update time) without loading whole markdown contents (or with it, or as a separated bundle)
 
 Options
