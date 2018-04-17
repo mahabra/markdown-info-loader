@@ -101,7 +101,7 @@ But this option is most convenient if you'd prefer to get file's metadata immedi
   test   : /\.md$/,
   exclude: /node_modules/,
   use    : {
-    loader : `markdown-meta-loader`,
+    loader : `markdown-info-loader`,
     options: {
       importSource: [
         `bundle-loader`,
