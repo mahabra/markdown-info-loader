@@ -13,6 +13,9 @@ var omit = require(`lodash.omit`);
 var isObjectLike = require(`lodash.isobjectlike`);
 var zipObject = require(`lodash.zipobject`);
 var defaultsDeep = require(`lodash.defaultsdeep`);
+var stringHash = require(`string-hash`);
+
+var getResourceRelativeRequest = require(`./getResourceRelativeRequest`);
 
 /* Supports only loaders with serializable options */
 function querifyLoaders(loaders) {
@@ -89,7 +92,7 @@ function spawnGitLog(resourcePath, prettyFormat, middleOptions = []) {
 module.exports = function loader(source) {
   this.cacheable && this.cacheable();
   var output = [];
-  var meta = {};
+  var info = {};
   var userOptions = loaderUtils.getOptions(this);
   var options = Object.assign({
     /* Use git CLI to collect advanced information about file, such as author
@@ -112,17 +115,22 @@ module.exports = function loader(source) {
     */
     git: true,
 
-    /* Walk ast to find file heading */
-    heading: true,
+    parse: {
+      /* Get file metadata from YAML header */
+      yaml: true,
 
-    /* Enables options.commonmark (for remark-parse)
-     * There is some ditails about this option:
-     * - Empty lines to split blockquotes
-     * - Parentheses (( and )) around for link and image titles
-     * - Any escaped ASCII-punctuation character
-     * - Closing parenthesis ()) as an ordered list marker
-     * - URL definitions (and footnotes, when enabled) in blockquotes */
-    commonmark: true,
+      /* Walk ast to find file heading */
+      heading: true,
+
+      /* Enables options.commonmark (for remark-parse)
+       * There is some ditails about this option:
+       * - Empty lines to split blockquotes
+       * - Parentheses (( and )) around for link and image titles
+       * - Any escaped ASCII-punctuation character
+       * - Closing parenthesis ()) as an ordered list marker
+       * - URL definitions (and footnotes, when enabled) in blockquotes */
+      commonmark: true
+    },
 
     /* You can specify advanced loader for markdown file (it can  be simple
      * markdown-loader or bundle-loader, for example)
@@ -134,19 +142,7 @@ module.exports = function loader(source) {
     importSource: false
   }, userOptions);
 
-  /* Prepare markdown parser (powered by unified and remark-parse) */
-  var parser = unified().use(parse, Object.assign({
-    commonmark: options.commonmark
-  }, options));
-
-  /* Parse yaml */
-  var obj = yaml.loadFront(source);
-
-  /* Preserve pure content (without YAML text) */
-  var pureContent = obj.__content;
-
-  /* Exclude markdown content from result, because content is optional */
-  Object.assign(meta, omit(obj, [`__content`]));
+  let pureContent = source;
 
   /* Use git CLI to get file advanced info */
   if (options.git) {
@@ -209,24 +205,41 @@ module.exports = function loader(source) {
       )(rawOutput);
     }
 
-    Object.assign(meta, {
+    info.git = {
       commits
-    });
+    };
+  }
+
+  /* Parse yaml metadata */
+  if (options.parse.yaml) {
+    var yamlMeta = yaml.loadFront(source);
+
+    /* Preserve pure content (without YAML text) */
+    pureContent = yamlMeta.__content;
+
+    info.meta = info.meta || {};
+    /* Exclude markdown content from result, because content is optional */
+    Object.assign(info.meta, omit(yamlMeta, [`__content`]));
   }
 
   /* Walk ast for heading */
-  if (options.heading) {
+  if (options.parse.heading) {
+    /* Prepare markdown parser (powered by unified and remark-parse) */
+    var parser = unified().use(parse, Object.assign({
+      commonmark: options.parse.commonmark
+    }, options));
     var ast = parser.parse(pureContent);
 
     var headingKey = ast.children && ast.children.findIndex(function (item) {
       return item.type === `heading` && item.depth === 1;
     });
 
+    info.meta = info.meta || {};
     if (headingKey >= 0) {
-      meta.heading = ast.children[headingKey].children[0] && ast.children[headingKey].children[0].value;
-      ast.children.splice(headingKey, 1);
+      info.meta.heading = ast.children[headingKey].children[0] && ast.children[headingKey].children[0].value;
+      // Ast.children.splice(headingKey, 1);
     } else {
-      meta.heading = false;
+      info.meta.heading = false;
     }
   }
 
@@ -240,8 +253,18 @@ module.exports = function loader(source) {
     output.push(`const source = null;`);
   }
 
+  info.resource = {};
+  /* Property ResourcePath is a full path to the target resource */
+  info.resource.path = this.resourcePath;
+
+  /* Property localPath is a path to the target resource relative to project root */
+  info.resource.localPath = getResourceRelativeRequest(this);
+
+  /* Property hashName is a unique name for this resource upon this project */
+  info.resource.hashName = stringHash(info.resource.localPath);
+
   output.push(`module.exports = Object.assign(
-    ${JSON.stringify(meta)},
+    ${JSON.stringify(info)},
     {
       source: source,
     }

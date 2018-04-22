@@ -1,6 +1,6 @@
 {
   "name": "markdown-info-loader",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Load meta information (includes YAML) about md file, and optionaly load markdown content",
   "main": "src/index.js",
   "scripts": {
@@ -49,6 +49,7 @@
     "lodash.zipobject": "^4.1.3",
     "query-string": "^6.0.0",
     "remark-parse": "^5.0.0",
+    "string-hash": "^1.1.3",
     "unified": "^6.1.6",
     "webpack-stringify-loaders": "^1.1.1",
     "yaml-front-matter": "^4.0.0"

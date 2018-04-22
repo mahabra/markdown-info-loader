@@ -3,13 +3,118 @@ Markdown info loader
 
 **Beta. Use on your own risk!**
 
-Develop a static blog? You can get all required information about markdown file (includes title, YAML metadata, author, editor or last update time) without loading whole markdown contents (or with it, or as a separated bundle)
+Develop a static blog? You can get all required information about markdown file (includes title, YAML metadata, author, editor and last update time) without loading whole markdown contents (or with it).
+
+Output
+--
+
+Result of loader is object with advanced file information.
+
+**`*`** *- optional property*.
+
+- **`resource`** Information about target resource:
+  - **`path`** Absolute path to file;
+  - **`localPath`** Path relative to the project root;
+  - **`hashName`** Unique hash number between 0 and 4294967295 (generated from *localPath*);
+- **`meta`*** Document metadata:
+  - **`heading`*** Document heading;
+  - **`...`*** YAML metadata (see [ditails](https://www.npmjs.com/package/yaml-front-matter))
+- **`git`*** Information about file git state:
+  - **`commits`*** File commits info;
+    - **`initial`*** Initial commit info;
+    - **`last`*** Last commit info;
+    - **`all`*** All commits info;
+- **`module`*** File module;
+
+For example:
+```js
+{
+  resource: {
+    path: '~/projects/library/src/items/hamlet.md',
+    localPath: '/src/items/hamlet.md',
+    hashName: 4294967295,
+  },
+  meta: {
+    heading: 'Hamlet',
+    author: 'William Shakespeare',
+    year: '1600'
+  },
+  git: {
+    commits: {
+      initial: {
+        an: 'admin',
+        ae: 'admin@example.com'
+        at: 1524365103,
+      },
+      last: {
+        an: 'moderator',
+        ae: 'moderator@example.com',
+        at: 1524365204,
+      },
+    }
+  },
+  module: Function
+}
+```
 
 Options
 --
 
+### `parse.heading` **(bool)**
+_Default: `true`_
+
+Parse markdown primary heading.
+
+For example:
+```md
+Hamlet
+--
+
+To be or not to be
+```
+
+Will give:
+
+```js
+{
+  meta: {
+    heading: 'Hamlet'
+  }
+}
+```
+
+### `parse.yaml` **(bool)**
+_Default: `true`_
+
+Parses yaml or json at the front of a markdown file content. Result will be assigned in to `meta` property.
+
+For example:
+```md
+---
+author: William Shakespeare
+year: 1600
+---
+Hamlet
+--
+
+To be or not to be
+```
+
+Will give:
+
+```js
+{
+  meta: {
+    author: 'William Shakespeare',
+    year: '1600',
+  }
+}
+```
+
+More ditails [here](https://www.npmjs.com/package/yaml-front-matter).
+
 ### `git` **(bool|object)**
-_Default: true_
+_Default: `true`_
 
 Use [git](https://git-scm.com/) CLI to collect advanced information about file, such as author name, email, and create date;
 
@@ -19,18 +124,20 @@ By the defaults, you'll get information (author name, author email and date) abo
 
 ```js
 {
-  commits: {
-    initial: {
-      at: "1522742493",
-      ae: "ivani@example.com",
-      an: "Ivan Ivanov"
+  git: {
+    commits: {
+      initial: {
+        at: "1522742493",
+        ae: "ivani@example.com",
+        an: "Ivan Ivanov"
+      },
+      last: {
+        at: "1523235676",
+        ae: "petrp@example.com",
+        an: "Petr Petrov"
+      }
     },
-    last: {
-      at: "1523235676",
-      ae: "petrp@example.com",
-      an: "Petr Petrov"
-    }
-  },
+  }
   ...
 }
 ```
@@ -43,17 +150,7 @@ But if you prefer to configure git collector in advanced mode, you should define
 - **`all`** (bool) _Default: false_ Get all commits (heavy);
 - **`formatSep`** (string) Separator of placeholders (by default the separator is quite unique, but you can define your delimiter to avoid collisions)
 
-Custom configuration will be deep mixed with the default configuration, thus shape like { all: false } will be correct.
-
-### `heading` **(bool)**
-_Default: true_
-
-Parse markdown content and get its heading
-
-### `commonmark` **(bool)**
-_Default: true_
-
-Enables remark-parse commonmark option (see [ditails](https://github.com/remarkjs/remark/tree/master/packages/remark-parse#optionscommonmark))
+Custom configuration will be deep mixed with the default configuration, thus shape like `{ all: false }` will be correct.
 
 ### `importSource` **(object)**
 
@@ -118,6 +215,11 @@ But this option is most convenient if you'd prefer to get file's metadata immedi
   source: function bundle
 }
 ```
+
+### `parse.commonmark` **(bool)**
+_Default: true_
+
+Enables remark-parse commonmark option (see [ditails](https://github.com/remarkjs/remark/tree/master/packages/remark-parse#optionscommonmark))
 
 License
 --
