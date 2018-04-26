@@ -1,6 +1,6 @@
 {
   "name": "markdown-info-loader",
-  "version": "0.3.0",
+  "version": "0.4.0-beta",
   "description": "Load meta information (includes YAML) about md file, and optionaly load markdown content",
   "main": "src/index.js",
   "scripts": {

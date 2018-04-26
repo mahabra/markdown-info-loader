@@ -18,7 +18,7 @@ Result of loader is object with advanced file information.
   - **`hashName`** Unique hash number between 0 and 4294967295 (generated from *localPath*);
 - **`meta`*** Document metadata:
   - **`heading`*** Document heading;
-  - **`...`*** YAML metadata (see [ditails](https://www.npmjs.com/package/yaml-front-matter))
+  - **`...`*** Front matter metadata (see [here](https://jekyllrb.com/docs/frontmatter/) and [here](https://www.npmjs.com/package/yaml-front-matter))
 - **`git`*** Information about file git state:
   - **`commits`*** File commits info;
     - **`initial`*** Initial commit info;
@@ -83,10 +83,10 @@ Will give:
 }
 ```
 
-### `parse.yaml` **(bool)**
+### `parse.frontMatter` **(bool)**
 _Default: `true`_
 
-Parses yaml or json at the front of a markdown file content. Result will be assigned in to `meta` property.
+Parses front matter data. Result will be assigned in to `meta` property.
 
 For example:
 ```md
@@ -111,7 +111,8 @@ Will give:
 }
 ```
 
-More ditails [here](https://www.npmjs.com/package/yaml-front-matter).
+More ditails
+[here](https://jekyllrb.com/docs/frontmatter/) and [here](https://www.npmjs.com/package/yaml-front-matter).
 
 ### `git` **(bool|object)**
 _Default: `true`_
@@ -220,6 +221,14 @@ But this option is most convenient if you'd prefer to get file's metadata immedi
 _Default: true_
 
 Enables remark-parse commonmark option (see [ditails](https://github.com/remarkjs/remark/tree/master/packages/remark-parse#optionscommonmark))
+
+### `plugins` **(bool)**
+_Default: undefined_
+
+Array of functions, which will be called in loader context.
+
+The plugin is a function, that is called in loader context and has parameters `info` (result object) and `ast` (parsed from markdown). The result of a plugin can be a javascript code, which will be added between import block and result block.
+
 
 License
 --
